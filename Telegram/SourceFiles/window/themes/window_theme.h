@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/style/style_core_palette.h"
 
 class QFileSystemWatcher;
+class QTimer;
 struct FilePrepareResult;
 
 namespace style {
@@ -252,6 +253,7 @@ private:
 	void checkUploadWallPaper();
 	[[nodiscard]] QImage postprocessBackgroundImage(QImage image);
 	void refreshThemeWatcher();
+	void reloadTheme();
 
 	friend bool IsNightMode();
 	friend void SetNightModeValue(bool nightMode);
@@ -289,6 +291,11 @@ private:
 	bool _themeTile = false;
 	std::optional<Data::CloudTheme> _editingTheme;
 	std::unique_ptr<QFileSystemWatcher> _themeWatcher;
+	std::unique_ptr<QTimer> _themeReloadTimer;
+	QString _themeWatchPath;
+	QByteArray _themeWatchContent;
+	QString _externalThemePath;
+	std::unique_ptr<Instance> _externalTheme;
 
 	Data::WallPaper _paperForRevert
 		= Data::details::UninitializedWallPaper();

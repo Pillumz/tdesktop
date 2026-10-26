@@ -45,6 +45,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QFileSystemWatcher>
+#include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QStyleHints>
 
@@ -56,6 +57,7 @@ constexpr auto kThemeFileSizeLimit = 5 * 1024 * 1024;
 constexpr auto kBackgroundSizeLimit = 25 * 1024 * 1024;
 constexpr auto kNightThemeFile = ":/gui/night.tdesktop-theme"_cs;
 constexpr auto kDarkValueThreshold = 0.5;
+constexpr auto kThemeReloadDelay = 150;
 
 struct Applying {
 	Saved data;
@@ -166,6 +168,7 @@ bool readNameAndValue(const char *&from, const char *end, QLatin1String *outName
 enum class SetResult {
 	Ok,
 	NotFound,
+	Invalid,
 };
 SetResult setColorSchemeValue(
 		QLatin1String name,
@@ -186,7 +189,7 @@ SetResult setColorSchemeValue(
 		}
 		if (error) {
 			LOG(("Theme Warning: Skipping value '%1: %2' (expected a color value in #rrggbb or #rrggbbaa or a previously defined key in the color scheme)").arg(name).arg(value));
-			return SetResult::Ok;
+			return SetResult::Invalid;
 		} else if (out) {
 			result = out->palette.setColor(name, r, g, b, a);
 		} else {
@@ -205,10 +208,10 @@ SetResult setColorSchemeValue(
 		return SetResult::NotFound;
 	} else if (result == style::palette::SetResult::ValueNotFound) {
 		LOG(("Theme Warning: Skipping value '%1: %2' (expected a color value in #rrggbb or #rrggbbaa or a previously defined key in the color scheme)").arg(name).arg(value));
-		return SetResult::Ok;
+		return SetResult::Invalid;
 	} else if (result == style::palette::SetResult::Duplicate) {
 		LOG(("Theme Warning: Color value appears more than once in the color scheme (while applying '%1: %2')").arg(name).arg(value));
-		return SetResult::Ok;
+		return SetResult::Invalid;
 	} else {
 		LOG(("Theme Error: Unexpected internal error."));
 	}
@@ -218,18 +221,25 @@ SetResult setColorSchemeValue(
 bool loadColorScheme(
 		const QByteArray &content,
 		const style::colorizer &colorizer,
-		Instance *out) {
+		Instance *out,
+		bool strict = false) {
 	auto unsupported = QMap<QLatin1String, QLatin1String>();
-	return ReadPaletteValues(content, [&](QLatin1String name, QLatin1String value) {
+	auto hasColors = false;
+	const auto parsed = ReadPaletteValues(content, [&](QLatin1String name, QLatin1String value) {
 		// Find the named value in the already read unsupported list.
 		value = unsupported.value(value, value);
 
 		auto result = setColorSchemeValue(name, value, colorizer, out);
 		if (result == SetResult::NotFound) {
 			unsupported.insert(name, value);
+		} else if (result == SetResult::Ok) {
+			hasColors = true;
+		} else if (strict) {
+			return false;
 		}
 		return true;
 	});
+	return parsed && (!strict || hasColors);
 }
 
 void EnsureAccentReadable(
@@ -563,11 +573,30 @@ void ChatBackground::start() {
 	) | rpl::on_next([=](const BackgroundUpdate &update) {
 		refreshThemeWatcher();
 		if (update.paletteChanged()) {
+			if (_externalTheme) {
+				style::main_palette::apply(_externalTheme->palette);
+				saveAdjustableColors();
+			}
 			style::NotifyPaletteChanged();
 		}
 	}, _lifetime);
 
 	initialRead();
+
+	const auto externalPath = qEnvironmentVariable("TDESKTOP_THEME");
+	const auto externalInfo = QFileInfo(externalPath);
+	if (!externalPath.isEmpty()
+		&& externalInfo.isAbsolute()
+		&& externalInfo.isNativePath()
+		&& externalPath.endsWith(u".tdesktop-palette"_q, Qt::CaseInsensitive)) {
+		_externalThemePath = externalInfo.absoluteFilePath();
+	} else if (!externalPath.isEmpty()) {
+		LOG(("Theme Error: TDESKTOP_THEME must be an absolute local .tdesktop-palette path."));
+	}
+	refreshThemeWatcher();
+	if (!_externalThemePath.isEmpty()) {
+		reloadTheme();
+	}
 
 	Core::App().domain().activeSessionValue(
 	) | rpl::filter([=](Main::Session *session) {
@@ -637,21 +666,90 @@ void ChatBackground::start() {
 }
 
 void ChatBackground::refreshThemeWatcher() {
-	const auto path = _themeObject.pathAbsolute;
-	if (path.isEmpty()
-		|| !QFileInfo(path).isNativePath()
-		|| editingTheme()) {
-		_themeWatcher = nullptr;
-	} else if (!_themeWatcher || !_themeWatcher->files().contains(path)) {
-		_themeWatcher = std::make_unique<QFileSystemWatcher>(
-			QStringList(path));
+	const auto path = !_externalThemePath.isEmpty()
+		? _externalThemePath
+		: (!editingTheme() && QFileInfo(_themeObject.pathAbsolute).isNativePath()
+			? _themeObject.pathAbsolute
+			: QString());
+	if (path != _themeWatchPath) {
+		if (_themeWatcher) {
+			_themeReloadTimer->stop();
+			const auto files = _themeWatcher->files();
+			const auto directories = _themeWatcher->directories();
+			if (!files.isEmpty()) {
+				_themeWatcher->removePaths(files);
+			}
+			if (!directories.isEmpty()) {
+				_themeWatcher->removePaths(directories);
+			}
+		}
+		_themeWatchPath = path;
+		_themeWatchContent.clear();
+	}
+	if (path.isEmpty()) {
+		return;
+	}
+	if (!_themeWatcher) {
+		_themeWatcher = std::make_unique<QFileSystemWatcher>();
+		_themeReloadTimer = std::make_unique<QTimer>();
+		_themeReloadTimer->setSingleShot(true);
+		_themeReloadTimer->setInterval(kThemeReloadDelay);
+		const auto schedule = [=] {
+			if (!_themeReloadTimer->isActive()) {
+				_themeReloadTimer->start();
+			}
+		};
 		QObject::connect(
 			_themeWatcher.get(),
 			&QFileSystemWatcher::fileChanged,
-			[](const QString &path) {
-			Apply(path);
+			_themeWatcher.get(),
+			schedule);
+		QObject::connect(
+			_themeWatcher.get(),
+			&QFileSystemWatcher::directoryChanged,
+			_themeWatcher.get(),
+			schedule);
+		QObject::connect(
+			_themeReloadTimer.get(),
+			&QTimer::timeout,
+			_themeWatcher.get(),
+			[=] {
+				refreshThemeWatcher();
+				reloadTheme();
+			});
+	}
+	const auto directory = QFileInfo(path).absolutePath();
+	if (!_themeWatcher->directories().contains(directory)) {
+		_themeWatcher->addPath(directory);
+	}
+	if (QFileInfo(path).isFile() && !_themeWatcher->files().contains(path)) {
+		_themeWatcher->addPath(path);
+	}
+}
+
+void ChatBackground::reloadTheme() {
+	if (_themeWatchPath.isEmpty()) {
+		return;
+	}
+	const auto content = readThemeContent(_themeWatchPath);
+	if (content.isEmpty() || content == _themeWatchContent) {
+		return;
+	}
+	if (!_externalThemePath.isEmpty()) {
+		auto theme = std::make_unique<Instance>();
+		if (!loadColorScheme(content, style::colorizer(), theme.get(), true)) {
+			return;
+		}
+		theme->palette.finalize();
+		_externalTheme = std::move(theme);
+		_themeWatchContent = content;
+		// Keep the override in memory, not in the user's saved theme or wallpaper.
+		appliedEditedPalette();
+	} else if (auto preview = PreviewFromFile(content, _themeWatchPath, {})) {
+		_themeWatchContent = content;
+		if (Apply(std::move(preview))) {
 			KeepApplied();
-		});
+		}
 	}
 }
 
