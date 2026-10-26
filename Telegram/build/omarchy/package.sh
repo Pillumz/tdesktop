@@ -42,6 +42,8 @@ mkdir -m 755 -- "$output"
 trap 'rm -rf -- "$output"' EXIT
 install -m 755 -- "$binary" "$output/Telegram"
 install -m 755 -- "$source_dir/launch.py" "$output/launch.py"
+install -m 755 -- "$source_dir/install.py" "$output/install.py"
+install -m 644 -- "$source_dir/../../Resources/art/icon256.png" "$output/telegram-native.png"
 install -m 644 -- "$source_dir/generate_palette.py" "$output/generate_palette.py"
 install -m 644 -- "$palette" "$output/colors.palette"
 install -m 644 -- "$source_dir/README.md" "$output/README.md"
@@ -50,6 +52,7 @@ install -m 644 -- "$source_dir/../../../LEGAL" "$output/LEGAL"
 trap - EXIT
 printf '%s\n' \
     "Package created: $output" \
-    'Run python3 /path/to/package/launch.py (Python 3.11+ required).' \
-    'Verify the supplied native fork was built with DISABLE_AUTOUPDATE=ON before launching.' \
-    'No libraries, accounts, desktop registration, or compositor rules are bundled.'
+    'Place this directory permanently, then run python3 /path/to/package/install.py (Python 3.11+).' \
+    'The installer registers a user-level Telegram shim, desktop entry and tg/ton/tonsite defaults.' \
+    'Verify the fork was built with DISABLE_AUTOUPDATE=ON before launching Telegram.' \
+    'No libraries, accounts or compositor rules are bundled; packaging installs nothing.'
