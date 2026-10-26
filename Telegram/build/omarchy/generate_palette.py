@@ -28,7 +28,7 @@ LEGACY = {
 }
 SURFACES = frozenset("""
 windowBg dialogsBg dialogsBgOver dialogsBgActive topBarBg sideBarBg sideBarBgActive
-mainMenuBg mainMenuCoverBg menuBg boxBg boxSearchBg contactsBg introBg titleBg
+mainMenuBg mainMenuCoverBg menuBg menuBgOver boxBg boxSearchBg contactsBg introBg titleBg
 titleBgActive emojiPanBg emojiPanCategories emojiPanHeaderBg stickerPreviewBg
 historyComposeAreaBg historyPinnedBg historyReplyBg historyComposeButtonBg
 historyUnreadBarBg mediaPlayerBg notificationBg tooltipBg toastBg

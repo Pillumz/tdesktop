@@ -392,6 +392,10 @@ void SectionWidget::PaintBackground(
 		QSize fill,
 		QRect clip,
 		bool paused) {
+	if (Ui::UseTranslucentWindows()) {
+		Ui::FillSurfaceRect(p, clip, st::windowBg);
+		return;
+	}
 	const auto &background = theme->background();
 	if (background.colorForFill) {
 		p.fillRect(clip, *background.colorForFill);

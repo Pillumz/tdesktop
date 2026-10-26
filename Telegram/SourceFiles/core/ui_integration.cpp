@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
 #include "base/unixtime.h"
+#include "base/platform/base_platform_info.h"
 #include "styles/style_chat_helpers.h"
 
 #include <QtCore/QDateTime>
@@ -312,6 +313,12 @@ void UiIntegration::touchCounterIncrement() {
 
 int UiIntegration::touchCounterNow() {
 	return _touchCounter;
+}
+
+bool UiIntegration::translucentWindows() {
+	static const auto enabled = Platform::IsLinux()
+		&& (qEnvironmentVariableIntValue("TDESKTOP_TRANSLUCENT") == 1);
+	return enabled;
 }
 
 bool UiIntegration::screenIsLocked() {

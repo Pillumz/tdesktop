@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/format_values.h"
 #include "ui/text/format_song_document_name.h"
+#include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
 #include "media/audio/media_audio.h"
 #include "media/view/media_view_playback_progress.h"
@@ -86,7 +87,7 @@ Widget::Widget(
 	}, _speedToggle->lifetime());
 	_speedToggle->finishAnimating();
 
-	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	setMouseTracking(true);
 	resize(width(), st::mediaPlayerHeight + st::lineWidth);
 

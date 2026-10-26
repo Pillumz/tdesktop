@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/painter.h"
+#include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
@@ -288,11 +289,12 @@ void TranslateBar::setup(not_null<History*> history) {
 	};
 	const auto button = static_cast<Ui::AbstractButton*>(_wrap.entity());
 	button->resize(0, st::historyTranslateBarHeight);
-	button->setAttribute(Qt::WA_OpaquePaintEvent);
+	button->setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 
 	button->paintRequest(
 	) | rpl::on_next([=](QRect clip) {
-		QPainter(button).fillRect(clip, st::historyComposeButtonBg);
+		auto p = QPainter(button);
+		Ui::FillSurfaceRect(p, clip, st::historyComposeButtonBg);
 	}, button->lifetime());
 
 	button->setClickedCallback([=] {

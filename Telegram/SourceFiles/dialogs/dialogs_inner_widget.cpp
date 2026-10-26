@@ -320,7 +320,7 @@ InnerWidget::InnerWidget(
 	+ st::defaultDialogRow.padding.left())
 , _childListShown(std::move(childListShown))
 , _freezeTimer([=] { _shownList->unfreeze(); update(); }) {
-	setAttribute(Qt::WA_OpaquePaintEvent, true);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	setAccessibleName(tr::lng_recent_chats(tr::now));
 
 	_communityViewable.setRepaint([=] { update(); });
@@ -1111,7 +1111,8 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 			: _chatPreviewRow.key
 			? (row->key() == _chatPreviewRow.key)
 			: selected;
-		const auto cacheAllowed = _rowsScrollCache.scrolling()
+		const auto cacheAllowed = !Ui::UseTranslucentWindows()
+			&& _rowsScrollCache.scrolling()
 			&& (!videoUserpic || !context.narrow)
 			&& !active
 			&& !cacheSelected

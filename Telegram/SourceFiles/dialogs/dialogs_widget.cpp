@@ -2614,10 +2614,9 @@ QPixmap Widget::grabForChatsFilterSlide() {
 	if (!hidden) {
 		_scrollToTop->hide();
 	}
-	auto result = Ui::GrabOpaque(
-		_scroll.data(),
-		_scroll->rect(),
-		st::dialogsBg->c);
+	auto result = Ui::UseTranslucentWindows()
+		? Ui::GrabWidget(_scroll.data(), _scroll->rect())
+		: Ui::GrabOpaque(_scroll.data(), _scroll->rect(), st::dialogsBg->c);
 	if (!hidden) {
 		_scrollToTop->show();
 	}
@@ -2632,13 +2631,16 @@ void Widget::startChatsFilterSlide(
 	_chatsFilterSlideCanvas = std::make_unique<Ui::RpWidget>(this);
 	const auto canvas = _chatsFilterSlideCanvas.get();
 	canvas->setAttribute(Qt::WA_TransparentForMouseEvents);
-	canvas->setAttribute(Qt::WA_OpaquePaintEvent);
+	canvas->setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	canvas->setGeometry(_scroll->geometry());
 	const auto animation
 		= canvas->lifetime().make_state<Ui::SlideAnimation>();
 	animation->setSnapshots(std::move(wasCache), std::move(nowCache));
 	canvas->paintOn([=](QPainter &p) {
-		p.fillRect(canvas->rect(), st::dialogsBg);
+		const auto background = Ui::UseTranslucentWindows()
+			? QColor(Qt::transparent)
+			: st::dialogsBg->c;
+		Ui::FillSurfaceRect(p, canvas->rect(), background);
 		animation->paintFrame(p, 0, 0, canvas->width());
 	});
 	canvas->show();
@@ -4956,7 +4958,7 @@ void Widget::paintEvent(QPaintEvent *e) {
 		_childListShown.current());
 	auto above = QRect(0, 0, width(), _scroll->y());
 	if (above.intersects(r)) {
-		p.fillRect(above.intersected(r), bg);
+		Ui::FillSurfaceRect(p, above.intersected(r), bg);
 	}
 
 	auto belowTop = _scroll->y() + _scroll->height();
@@ -4982,7 +4984,7 @@ void Widget::paintEvent(QPaintEvent *e) {
 
 	auto below = QRect(0, belowTop, width(), height() - belowTop);
 	if (below.intersects(r)) {
-		p.fillRect(below.intersected(r), bg);
+		Ui::FillSurfaceRect(p, below.intersected(r), bg);
 	}
 }
 

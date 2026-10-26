@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/fade_wrap.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/search_field_controller.h"
+#include "ui/ui_utility.h"
 #include "data/data_session.h"
 #include "data/data_channel.h"
 #include "data/data_user.h"
@@ -43,7 +44,8 @@ TopBar::TopBar(
 	if (_st.radius) {
 		_roundRect.emplace(_st.radius, _st.bg);
 	}
-	setAttribute(Qt::WA_OpaquePaintEvent, !_roundRect);
+	setAttribute(Qt::WA_OpaquePaintEvent,
+		!_roundRect && !Ui::UseTranslucentWindows());
 	setSelectedItems(std::move(selectedItems));
 	updateControlsVisibility(anim::type::instant);
 }

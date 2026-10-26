@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/scroll_area.h"
 #include "ui/cached_round_corners.h"
 #include "ui/vertical_list.h"
+#include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
 #include "boxes/abstract_box.h"
 #include "window/window_controller.h"
@@ -229,7 +230,7 @@ IntroWidget::IntroWidget(
 , _wrap(this)
 , _scroll(Ui::CreateChild<Ui::ScrollArea>(_wrap.data()))
 , _topShadow(this) {
-	_wrap->setAttribute(Qt::WA_OpaquePaintEvent);
+	_wrap->setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	_wrap->paintRequest(
 	) | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(_wrap.data());

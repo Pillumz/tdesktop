@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/radial_animation.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
+#include "ui/ui_utility.h"
 #include "styles/style_chat_helpers.h"
 
 namespace Ui {
@@ -24,7 +25,9 @@ EmojiButton::EmojiButton(QWidget *parent, const style::EmojiButton &st)
 void EmojiButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 
-	p.fillRect(e->rect(), _st.bg);
+	if (_st.bg->c.alpha()) {
+		Ui::FillSurfaceRect(p, e->rect(), _st.bg);
+	}
 	const auto &st = _st.inner;
 	paintRipple(p, st.rippleAreaPosition.x(), st.rippleAreaPosition.y(), _rippleOverride ? &(*_rippleOverride)->c : nullptr);
 

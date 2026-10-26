@@ -55,6 +55,7 @@ public:
 	int touchCounterNow() override;
 
 	bool screenIsLocked() override;
+	bool translucentWindows() override;
 
 	std::shared_ptr<ClickHandler> createLinkHandler(
 		const EntityLinkData &data,

@@ -346,7 +346,7 @@ MainMenu::MainMenu(
 , _telegram(
 	Ui::CreateChild<Ui::FlatLabel>(_footer.get(), st::mainMenuTelegramLabel))
 , _version(AddVersionLabel(_footer)) {
-	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 
 	setupUserpicButton();
 	setupAccountsToggle();
@@ -903,7 +903,7 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 	const auto clip = e->rect();
 	const auto cover = QRect(0, 0, width(), st::mainMenuCoverHeight);
 
-	p.fillRect(clip, st::mainMenuBg);
+	Ui::FillSurfaceRect(p, clip, st::mainMenuBg);
 	if (cover.intersects(clip)) {
 		drawName(p);
 	}

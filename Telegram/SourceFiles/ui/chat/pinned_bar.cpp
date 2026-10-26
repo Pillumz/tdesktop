@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/fade_wrap.h"
+#include "ui/ui_utility.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/palette.h"
 
@@ -39,9 +40,10 @@ PinnedBar::PinnedBar(
 
 	_wrap.entity()->paintRequest(
 	) | rpl::on_next([=](QRect clip) {
-		QPainter(_wrap.entity()).fillRect(clip, st::historyPinnedBg);
+		auto p = QPainter(_wrap.entity());
+		Ui::FillSurfaceRect(p, clip, st::historyPinnedBg);
 	}, lifetime());
-	_wrap.setAttribute(Qt::WA_OpaquePaintEvent);
+	_wrap.setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 
 	if (customEmojiPausedChanges) {
 		std::move(

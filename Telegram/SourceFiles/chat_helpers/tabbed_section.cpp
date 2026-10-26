@@ -39,7 +39,7 @@ TabbedSection::TabbedSection(
 	_selector->setAfterShownCallback(nullptr);
 	_selector->setBeforeHidingCallback(nullptr);
 
-	setAttribute(Qt::WA_OpaquePaintEvent, true);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 }
 
 void TabbedSection::beforeHiding() {

@@ -44,6 +44,9 @@ install -m 755 -- "$binary" "$output/Telegram"
 install -m 755 -- "$source_dir/launch.py" "$output/launch.py"
 install -m 644 -- "$source_dir/generate_palette.py" "$output/generate_palette.py"
 install -m 644 -- "$palette" "$output/colors.palette"
+install -m 644 -- "$source_dir/README.md" "$output/README.md"
+install -m 644 -- "$source_dir/../../../LICENSE" "$output/LICENSE"
+install -m 644 -- "$source_dir/../../../LEGAL" "$output/LEGAL"
 trap - EXIT
 printf '%s\n' \
     "Package created: $output" \

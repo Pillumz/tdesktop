@@ -37,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
 #include "styles/style_filter_icons.h"
 #include "styles/style_menu_icons.h"
@@ -234,7 +235,7 @@ FolderFavoriteButton::FolderFavoriteButton(
 , _st(st)
 , _api(&controller->session().mtp())
 , _label(st.minTextWidth) {
-	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 
 	setClickedCallback([=] { openLink(); });
 
@@ -277,7 +278,7 @@ int FolderFavoriteButton::resizeGetHeight(int newWidth) {
 
 void FolderFavoriteButton::paintEvent(QPaintEvent *e) {
 	auto p = Painter(this);
-	p.fillRect(e->rect(), _st.textBg);
+	Ui::FillSurfaceRect(p, e->rect(), _st.textBg);
 
 	RippleButton::paintRipple(p, 0, 0);
 

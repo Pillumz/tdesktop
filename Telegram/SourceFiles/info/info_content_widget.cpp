@@ -83,7 +83,7 @@ ContentWidget::ContentWidget(
 		: st::defaultScrollArea)) {
 	using namespace rpl::mappers;
 
-	setAttribute(Qt::WA_OpaquePaintEvent);
+	setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	_controller->wrapValue(
 	) | rpl::on_next([this](Wrap value) {
 		if (value != Wrap::Layer) {
@@ -160,7 +160,7 @@ bool ContentWidget::isStackBottom() const {
 void ContentWidget::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 	if (_paintPadding.isNull()) {
-		p.fillRect(e->rect(), _bg);
+		Ui::FillSurfaceRect(p, e->rect(), _bg);
 	} else {
 		const auto &r = e->rect();
 		const auto padding = QMargins(
@@ -168,7 +168,7 @@ void ContentWidget::paintEvent(QPaintEvent *e) {
 			std::min(0, (r.top() - _paintPadding.top())),
 			0,
 			std::min(0, (r.bottom() - _paintPadding.bottom())));
-		p.fillRect(r + padding, _bg);
+		Ui::FillSurfaceRect(p, r + padding, _bg);
 	}
 }
 

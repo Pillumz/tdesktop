@@ -123,7 +123,7 @@ void FiltersMenu::setup() {
 	_menu.setIsMenuButton(true);
 	_menu.setAccessibleName(tr::lng_main_menu(tr::now));
 
-	_outer.setAttribute(Qt::WA_OpaquePaintEvent);
+	_outer.setAttribute(Qt::WA_OpaquePaintEvent, !Ui::UseTranslucentWindows());
 	_outer.show();
 
 	// Keep the sidebar's Tab chain in visual order: the main menu button

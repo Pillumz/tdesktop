@@ -727,6 +727,9 @@ namespace Platform {
 
 void start() {
 	QGuiApplication::setDesktopFileName([&] {
+		if (qEnvironmentVariableIntValue("TDESKTOP_TRANSLUCENT") == 1) {
+			return u"org.telegram.desktop.native"_q;
+		}
 		if (KSandbox::isFlatpak()) {
 			return qEnvironmentVariable("FLATPAK_ID");
 		}

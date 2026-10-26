@@ -395,7 +395,7 @@ void FieldHeader::init() {
 	) | rpl::on_next([=] {
 		Painter p(this);
 		p.setInactive(_show->paused(Window::GifPauseReason::Any));
-		p.fillRect(rect(), st::historyComposeAreaBg);
+		Ui::FillSurfaceRect(p, rect(), st::historyComposeAreaBg);
 
 		const auto position = st::historyReplyIconPosition;
 		if (_suggestOptions) {
@@ -5729,7 +5729,7 @@ void ComposeControls::paintBackground(QPainter &p, QRect full, QRect clip) {
 		}
 		p.drawRoundedRect(full, _st.radius, _st.radius);
 	} else {
-		p.fillRect(clip, _st.bg);
+		Ui::FillSurfaceRect(p, clip, _st.bg);
 	}
 }
 
