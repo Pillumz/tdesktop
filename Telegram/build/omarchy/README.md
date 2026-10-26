@@ -1,31 +1,81 @@
-# Native Omarchy prototype
+# Telegram Native for Omarchy
 
 This experimental fork separates translucent window surfaces from solid text,
 icons and media. A Python 3.11+ launcher maps Omarchy's published `colors.toml`
-and follows theme changes while Telegram runs. Nothing is installed into
-Omarchy, and no system daemon or theme hook is needed.
+and follows theme changes while Telegram runs. No system daemon or theme hook
+is needed. Desktop integration is user-level and opt-in.
 
-## Run a prepared package
+## Install a prepared package
+
+Keep the package at a permanent path. First ensure `~/.local/bin` precedes
+`/usr/bin` in the **graphical session's** PATH (log out/in after changing it).
+Then, as your own user, explicitly run:
 
 ```bash
-python3 /path/to/telegram-native/launch.py
+python3 /permanent/path/to/telegram-native/install.py
 ```
 
-The launcher uses its own profile under
-`${XDG_DATA_HOME:-$HOME/.local/share}/telegram-native`. Your installed Telegram
-profile is not imported or changed; expect a separate login. Never pass that
-installed profile to `--profile`. Use `--opacity 0.85` to adjust surface opacity
-without fading text or media. `--colors`, `--profile`, `--binary` and `--palette`
-allow explicit paths. No URL handling or extra Telegram switches are forwarded.
+This creates `~/.local/bin/Telegram` pointing to this package's launcher and
+`${XDG_DATA_HOME:-$HOME/.local/share}/applications/org.telegram.desktop.native.desktop`,
+and sets the `tg:`, `ton:` and `tonsite:` defaults using `xdg-mime`. It never
+starts an app, enables autostart, removes another package, or touches accounts.
+It refuses to overwrite an unknown shim or desktop entry; inspect conflicts
+before proceeding. Use a stable package path for upgrades, keeping its executable
+and launcher together. Do not remove the package while its shim is installed.
+
+The shim is mandatory even when launching `launch.py` directly: this build's
+own Gio registration and in-app autostart use the basename `Telegram`, not the
+absolute package path. Generated `userapp-Telegram Desktop*.desktop` defaults
+are therefore expected and safe **only while the graphical session resolves
+`Telegram` to this shim**. Never replace the shim with the raw binary or put
+`/usr/bin` ahead of it. The supplied desktop entry uses an absolute shim path
+and deliberately disables D-Bus activation; Qt owns URI handoff and activation.
+The installer does not remove old userapp or autostart entries: the deployment
+coordinator must inspect existing entries and official-package removal separately.
+Do not run an old raw `-many` invocation alongside the daily launcher.
+
+## Daily use
+
+```bash
+Telegram                            # launch or activate the existing fork
+Telegram -- 'tg://resolve?domain=telegram'
+Telegram -- 'ton://transfer/example'
+Telegram -- 'tonsite://example.ton'
+Telegram -quit                      # graceful Qt handoff; no UI if already stopped
+Telegram -autostart                  # hidden startup, after enabling it in Settings
+```
+
+`-autostart` forwards both Qt `-autostart` and `-startintray`: Telegram must have
+its in-app autostart preference enabled or it intentionally exits. Enable/disable
+startup in Telegram Settings; its generated entry returns through the shim.
+A normal repeat launch still activates the existing app, including when hidden.
+Only these controls and Telegram-owned URI schemes are accepted. Spaces in URIs
+must be percent-encoded; arbitrary Qt switches, files and web URLs are rejected.
+URLs are passed verbatim after `--`, never through a shell or a custom IPC path.
+
+The launcher always uses
+`${XDG_DATA_HOME:-$HOME/.local/share}/telegram-native`. Keep the existing work
+profile there; home has a separate profile and requires its own login. No account
+data is imported, copied or deleted. There is no profile-selection option:
+app-generated `-workdir` is accepted only if it resolves to this same directory.
+Keep XDG_DATA_HOME consistent across the graphical session and terminal.
+Use `--opacity 0.85` to adjust surface opacity without fading text/media.
+`--colors`, `--binary` and `--palette` select explicit build/theme inputs;
+`--binary` must point to the native fork, never the official executable.
+These overrides apply to a new watcher, not an already-running one.
 
 Keep compositor whole-window opacity at **100%**. Native mode uses the separate
 Wayland application ID `org.telegram.desktop.native`, avoiding existing rules
 that specifically fade `org.telegram.desktop`. A broad opacity rule can still
 fade this app. Blur remains the compositor's responsibility.
 
-Run the launcher again after an in-app restart: its watcher follows the process
-it started, not Telegram's detached replacement process. This is a prototype,
-not a replacement for the installed client.
+On Linux the launcher is a child subreaper: detached in-app restarts remain
+supervised, inherit the native rendering environment and keep live palette
+watching. No C++ rebuild or persistent background service is needed. One watcher
+per profile owns a file lock; brief repeat-launch processes use Qt's existing
+single-instance socket, then exit. Signals stop only this invocation's children,
+including adopted restart processes. Qt remains responsible for profile locking;
+the wrapper never passes `-many` or creates a second single-instance protocol.
 
 ## Generate only
 
@@ -90,7 +140,8 @@ The launcher polls the published theme's color content and adjacent `light.mode`
 marker once per second, including through atomic theme-directory replacements.
 It regenerates only when these change. Invalid updates retain the last good
 palette and produce at most one warning per minute. Missing/invalid initial
-inputs stop launch rather than silently choosing another theme.
+inputs stop a new cold launch rather than silently choosing another theme.
+Activation/quit handoffs do not require valid current theme inputs.
 
 The fork's two opt-ins are independent:
 
@@ -105,8 +156,14 @@ The fork's two opt-ins are independent:
 
 Neither opt-in replaces saved themes or night-mode preferences. The external
 palette masks manual theme previews while active. Launch without the variables
-to restore normal behavior. The launcher owns a temporary palette and removes
-it when its child process exits; it leaves the isolated account profile intact.
+to restore normal behavior. Launcher-owned files live in the isolated profile's
+`omarchy/` subdirectory (`live.tdesktop-palette` and `watcher.lock`), separate from
+`tdata`. They persist after exit so detached restarts cannot lose their palette;
+the lock is released and all watcher processes exit when Telegram exits. Invalid
+updates retain the last-good file. No profile files are deleted on exit.
+If the supervisor itself is forcibly killed, a surviving Telegram retains the
+last palette but live generation stops; quit the fork and launch through the
+shim again. Do not start the raw packaged executable for daily use.
 
 ## Build and package
 
@@ -146,8 +203,9 @@ Telegram/build/omarchy/package.sh \
 ```
 
 The output directory must not exist. The package contains the executable,
-launcher, generator and palette schema, never accounts or test fixtures. It
-neither installs dependencies nor detects the supplied binary's build flags.
+launcher, installer, desktop icon, generator and palette schema, never accounts
+or test fixtures. Packaging installs nothing; installation is a separate explicit
+step. Neither helper installs dependencies or detects the binary's build flags.
 Debug symbols may be stripped from the packaged copy; keep the original build
 for diagnosis. Automatic updates must stay disabled so an official binary
 cannot replace the patched executable.
@@ -158,7 +216,18 @@ Rebuild and repeat actual UI checks; a palette-only check cannot validate alpha.
 
 ## Verification and limits
 
-Verified on 2026-10-26 with a Debug build inside an isolated Omarchy VM:
+Daily-launcher changes were checked with `herd-test --no-pg` and a compiled fake
+executable: argument rejection, URI argv preservation, activation/quit handoffs,
+hidden-start flags, exit status, signal cleanup, detached double-fork restarts,
+live updates after restart, last-good recovery and foreign-child survival.
+Installation ran only under a disposable HOME with stubbed MIME helpers;
+`desktop-file-validate` and real Gio desktop launching exercised paths containing
+spaces. These checks do not prove actual Qt handoff, login, desktop default
+resolution or session startup: those still require coordinator-owned sandbox
+verification. No owner GUI, account, configuration or installed client was used.
+
+Earlier rendering verification on 2026-10-26 used a Debug build inside an isolated
+Omarchy VM:
 
 - All 23 installed Omarchy palettes passed generator checks, including light,
   dark, legacy inputs, foreground opacity and preservation of native effects.
