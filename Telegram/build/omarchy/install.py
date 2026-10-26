@@ -64,8 +64,8 @@ def install():
             raise ValueError(f"missing package asset: {name}; use package.sh first")
     if not os.access(package / "Telegram", os.X_OK):
         raise ValueError("packaged Telegram is not executable")
-    binary_dir = Path.home() / ".local/bin"
-    search = [Path(item).absolute() for item in os.get_exec_path() if item]
+    binary_dir = (Path.home() / ".local/bin").resolve()
+    search = [Path(item).resolve() for item in os.get_exec_path() if item]
     if binary_dir not in search:
         raise ValueError("add ~/.local/bin to your graphical session PATH, then log in again before installing")
     for directory in search[:search.index(binary_dir)]:
