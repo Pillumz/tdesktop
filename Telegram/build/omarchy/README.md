@@ -7,9 +7,11 @@ is needed. Desktop integration is user-level and opt-in.
 
 ## Install a prepared package
 
-Keep the package at a permanent path. First ensure `~/.local/bin` precedes
-`/usr/bin` in the **graphical session's** PATH (log out/in after changing it).
-Then, as your own user, explicitly run:
+Keep the package at a permanent path. `~/.local/bin` must be in the **graphical
+session's** PATH, with no earlier `Telegram` executable shadowing the shim.
+If `/usr/bin` comes first, remove the official package before installation;
+changing PATH order is not required once its executable is gone. Log out/in if
+you do change the session PATH. Then, as your own user, explicitly run:
 
 ```bash
 python3 /permanent/path/to/telegram-native/install.py
@@ -20,18 +22,33 @@ This creates `~/.local/bin/Telegram` pointing to this package's launcher and
 and sets the `tg:`, `ton:` and `tonsite:` defaults using `xdg-mime`. It never
 starts an app, enables autostart, removes another package, or touches accounts.
 It refuses to overwrite an unknown shim or desktop entry; inspect conflicts
-before proceeding. Use a stable package path for upgrades, keeping its executable
+before proceeding. The package includes `icon256.png` as `telegram-native.png`;
+desktop entries use its absolute path, independent of official-package icons. Use a stable package path for upgrades, keeping its executable
 and launcher together. Do not remove the package while its shim is installed.
 
 The shim is mandatory even when launching `launch.py` directly: this build's
 own Gio registration and in-app autostart use the basename `Telegram`, not the
 absolute package path. Generated `userapp-Telegram Desktop*.desktop` defaults
 are therefore expected and safe **only while the graphical session resolves
-`Telegram` to this shim**. Never replace the shim with the raw binary or put
-`/usr/bin` ahead of it. The supplied desktop entry uses an absolute shim path
+`Telegram` to this shim**. Never replace the shim with the raw binary or allow
+another executable to shadow it. The supplied desktop entry uses an absolute shim path
 and deliberately disables D-Bus activation; Qt owns URI handoff and activation.
-The installer does not remove old userapp or autostart entries: the deployment
-coordinator must inspect existing entries and official-package removal separately.
+The installer migrates `~/.config/autostart/org.telegram.desktop.desktop` (or its
+XDG_CONFIG_HOME equivalent) only when present with `Exec=Telegram -autostart`.
+It preserves `Hidden` and desktop-specific enable/disable keys, changes the Exec
+and icon to absolute fork paths, then renames to `org.telegram.desktop.native.desktop`,
+which the fork's future Settings toggles own. Conflicts or unfamiliar commands
+stop installation for inspection. No legacy entry means no new autostart entry:
+work stays unchanged; only home's existing entry needs migration.
+
+A fresh home profile defaults its **in-app** autostart preference off. After the
+independent login, enable it in Settings if the migrated entry was enabled,
+before the first session startup; otherwise Qt intentionally exits and removes
+the entry. The installer never edits either client's account/settings data.
+Disabled desktop startup keys are preserved rather than silently re-enabled.
+Old userapp entries and official-package removal remain coordinator-owned.
+For checks before official removal, invoke the shim by absolute path, never a
+bare `Telegram`; the installer itself waits until no executable shadows the shim.
 Do not run an old raw `-many` invocation alongside the daily launcher.
 
 ## Daily use
@@ -220,7 +237,9 @@ Daily-launcher changes were checked with `herd-test --no-pg` and a compiled fake
 executable: argument rejection, URI argv preservation, activation/quit handoffs,
 hidden-start flags, exit status, signal cleanup, detached double-fork restarts,
 live updates after restart, last-good recovery and foreign-child survival.
-Installation ran only under a disposable HOME with stubbed MIME helpers;
+Installation ran only under disposable HOME/XDG paths with stubbed MIME helpers;
+absent, enabled and disabled legacy startup entries, native-toggle filenames,
+icon independence and earlier PATH shadow removal were checked.
 `desktop-file-validate` and real Gio desktop launching exercised paths containing
 spaces. These checks do not prove actual Qt handoff, login, desktop default
 resolution or session startup: those still require coordinator-owned sandbox

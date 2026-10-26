@@ -43,7 +43,7 @@ trap 'rm -rf -- "$output"' EXIT
 install -m 755 -- "$binary" "$output/Telegram"
 install -m 755 -- "$source_dir/launch.py" "$output/launch.py"
 install -m 755 -- "$source_dir/install.py" "$output/install.py"
-install -m 644 -- "$source_dir/../../Resources/art/logo_256.png" "$output/telegram-native.png"
+install -m 644 -- "$source_dir/../../Resources/art/icon256.png" "$output/telegram-native.png"
 install -m 644 -- "$source_dir/generate_palette.py" "$output/generate_palette.py"
 install -m 644 -- "$palette" "$output/colors.palette"
 install -m 644 -- "$source_dir/README.md" "$output/README.md"

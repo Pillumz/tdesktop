@@ -6,6 +6,8 @@ changes account data, removes the official package, or enables session autostart
 """
 
 import argparse
+import configparser
+import io
 import os
 from pathlib import Path
 import shutil
@@ -30,6 +32,31 @@ def desktop_argument(value):
     return desktop_string('"' + value + '"')
 
 
+def autostart_migration(shim, package):
+    directory = xdg_path("XDG_CONFIG_HOME", ".config") / "autostart"
+    legacy = directory / "org.telegram.desktop.desktop"
+    if not os.path.lexists(legacy):
+        return None
+    native = directory / "org.telegram.desktop.native.desktop"
+    if legacy.is_symlink() or os.path.lexists(native):
+        raise ValueError(f"inspect conflicting autostart entries in {directory} before migrating")
+    entry = configparser.ConfigParser(interpolation=None)
+    entry.optionxform = str
+    entry.read_string(legacy.read_text(encoding="utf-8"))
+    if entry.get("Desktop Entry", "Exec", fallback="").strip() != "Telegram -autostart":
+        raise ValueError(f"refusing to migrate unfamiliar Exec in {legacy}")
+    section = entry["Desktop Entry"]
+    section["Exec"] = f"{desktop_argument(shim)} -workdir {desktop_argument(str(default_profile()) + '/')} -autostart"
+    section["Icon"] = desktop_string(package / "telegram-native.png")
+    section["Name"] = "Telegram Native"
+    section["DBusActivatable"] = "false"
+    if "TryExec" in section:
+        section["TryExec"] = desktop_string(shim)
+    output = io.StringIO()
+    entry.write(output, space_around_delimiters=False)
+    return legacy, native, MARKER + output.getvalue()
+
+
 def install():
     package = Path(__file__).resolve().parent
     for name in ("Telegram", "launch.py", "generate_palette.py", "colors.palette", "telegram-native.png"):
@@ -43,7 +70,7 @@ def install():
         raise ValueError("add ~/.local/bin to your graphical session PATH, then log in again before installing")
     for directory in search[:search.index(binary_dir)]:
         if os.access(directory / "Telegram", os.X_OK):
-            raise ValueError(f"{directory}/Telegram shadows ~/.local/bin; put ~/.local/bin first in the session PATH")
+            raise ValueError(f"{directory}/Telegram shadows the shim; remove the official package or put ~/.local/bin first before installing")
     if not shutil.which("xdg-mime"):
         raise ValueError("xdg-mime is required to register URI defaults")
     shim = binary_dir / "Telegram"
@@ -52,6 +79,7 @@ def install():
         raise ValueError(f"refusing to replace existing {shim}; coordinator must inspect it first")
     if entry.is_symlink() or (entry.exists() and not entry.read_text().startswith(MARKER)):
         raise ValueError(f"refusing to replace existing {entry}; coordinator must inspect it first")
+    migration = autostart_migration(shim, package)
     command = f"{desktop_argument(shim)} -workdir {desktop_argument(str(default_profile()) + '/')} -- %u"
     content = MARKER + "\n".join((
         "[Desktop Entry]",
@@ -77,6 +105,12 @@ def install():
         subprocess.run(["xdg-mime", "default", entry.name, f"x-scheme-handler/{scheme}"], check=True)
     if shutil.which("update-desktop-database"):
         subprocess.run(["update-desktop-database", str(entry.parent)], check=True)
+    if migration is not None:
+        legacy, native, content = migration
+        native.write_text(content, encoding="utf-8")
+        legacy.unlink()
+        print(f"Migrated {legacy} to {native}; desktop startup enable/disable keys preserved.")
+        print("A fresh fork profile still needs autostart enabled in Telegram Settings after its independent login.")
     print(f"Installed {shim} and {entry}")
     print("URI defaults set for tg:, ton: and tonsite:. No app was started.")
     print("Enable autostart in Telegram Settings if wanted; it uses this same shim.")
@@ -86,7 +120,7 @@ def main():
     argparse.ArgumentParser(description=__doc__).parse_args()
     try:
         install()
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, configparser.Error, subprocess.CalledProcessError) as error:
         sys.exit(f"telegram-native install: {error}")
 
 
