@@ -241,9 +241,17 @@ Installation ran only under disposable HOME/XDG paths with stubbed MIME helpers;
 absent, enabled and disabled legacy startup entries, native-toggle filenames,
 icon independence and earlier PATH shadow removal were checked.
 `desktop-file-validate` and real Gio desktop launching exercised paths containing
-spaces. These checks do not prove actual Qt handoff, login, desktop default
-resolution or session startup: those still require coordinator-owned sandbox
-verification. No owner GUI, account, configuration or installed client was used.
+spaces. No owner GUI, account, configuration or installed client was used.
+
+The coordinator also installed the prepared package in a fresh Omarchy VM and
+ran the actual binary in a network namespace with no routes or personal account.
+Normal activation and all three URI defaults reused the original Telegram
+process; `tonsite:` correctly opened an additional window in that same process.
+Malformed theme input preserved the palette and did not prevent activation.
+Graceful quit, quit while already stopped, and Qt's refusal of autostart with
+its fresh-profile preference disabled all passed. The themed welcome screen
+was inspected. Authenticated startup and actual in-app restart were not exercised;
+detached-restart supervision was checked with the fake process described above.
 
 Earlier rendering verification on 2026-10-26 used a Debug build inside an isolated
 Omarchy VM:
@@ -276,8 +284,8 @@ was source-reviewed but not exercised with an actual saved filter fixture.
 Windows/macOS builds were not run. No upstream PR or automatic-update path is
 provided.
 
-Prototype source: https://github.com/Pillumz/tdesktop/tree/feat/omarchy-native
-with https://github.com/Pillumz/lib_ui/tree/feat/omarchy-native. Keep the package's
+Maintained source: https://github.com/Pillumz/tdesktop/tree/omarchy
+with https://github.com/Pillumz/lib_ui/tree/omarchy. Keep the package's
 `SOURCE.txt` for the exact revisions and build configuration. Run verification
 commands through `herd-test --no-pg`; a green check is not a substitute for
 inspecting the real compositor captures.
