@@ -2,6 +2,31 @@
 
 This guide defines repository-wide instructions for coding agents working with the Telegram Desktop codebase.
 
+## This is Kirill's Omarchy fork
+
+- The product developed here is `Pillumz/tdesktop`, not the official Telegram
+  repository. Its default branch and the base for ordinary fixes are
+  `origin/omarchy`. Preserve its native translucency and Omarchy integration.
+- `origin` is `https://github.com/Pillumz/tdesktop.git`; Git pushes and GitHub
+  pull requests go there by default. Set the local GitHub CLI default to
+  `Pillumz/tdesktop` when configuring a checkout. Never create an official
+  Telegram PR or push to an official repository without explicit user approval.
+- `upstream` is the official repository, for fetching and comparison only.
+  Its push URL is deliberately disabled. Do not "repair" that protection or
+  bypass it with an explicit upstream URL. Integrating upstream changes is a
+  separate, deliberate operation, not part of an ordinary requested fix.
+- The companion UI library is also our fork: `Pillumz/lib_ui`, default branch
+  `omarchy`. Publish library changes there before updating this repository's
+  submodule pin. Keep `.gitmodules` pointing to that fork.
+- In inherited upstream maintenance skills, `origin/dev` is not this product's
+  development base. Use the explicitly requested revision; do not silently
+  substitute official Telegram for the Omarchy fork.
+- Daily-use binaries live under `~/Applications/telegram-native` on home and
+  work. Use their launcher, not an official system Telegram executable. The
+  fork's account profile is separate; never copy, migrate or delete either
+  client's account data without explicit approval. Test GUI changes in the
+  app sandbox, not against a running personal account.
+
 ## AI Tasks
 
 In this repository "task" is a specific term. It always means one work record in
