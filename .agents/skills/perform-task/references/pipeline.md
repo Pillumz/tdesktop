@@ -22,7 +22,8 @@ context, and repository as sufficient unless the request expressly requires
 unavailable exact bytes or content.
 
 Use the shared [project-context policy](../../../shared/project-context.md)
-for selective reading, task-specific context, and optional durable amendments.
+for selective reading and task-specific context. A task never edits its
+project's `project.md`.
 
 Use visual evidence in this order: explicit task facts; supplied inputs;
 adjacent current UI/code/styles and the pre-task baseline; repository history
@@ -41,7 +42,7 @@ TASK_DIR = AI_SLOT/tasks/TASK_ID
 WORK_DIR = TASK_DIR/work
 LOCAL_DIR = TASK_DIR/.local
 TASK_SPEC = TASK_DIR/task.md plus referenced TASK_DIR/input files
-PROJECT_FILE = AI_SLOT/projects/<project>/project.md, or none
+PROJECT_FILE = AI_SLOT/projects/<project>/project.md, or none for a legacy task without a project
 BASE_REF = refs/ai-tasks/TASK_ID/base
 GREEN_REF = refs/ai-tasks/TASK_ID/green
 RUN_REF = refs/ai-tasks/TASK_ID/run
@@ -65,7 +66,7 @@ out/Debug/Telegram.app/Contents/MacOS/Telegram
 
 MAX_ATTEMPTS = 4
 MAX_TEST_RUNS = 12 per test campaign
-MAX_TEST_CAMPAIGNS = 2 total: one normal and at most one focused recovery
+MAX_TEST_CAMPAIGNS = 2: one normal and one focused recovery; each further focused campaign needs a cap assessment naming an untried direct strategy
 COMPUTER_USE_POLICY = auto | overlay-only | required
 ```
 
@@ -177,7 +178,6 @@ Use tracked, resumable task artifacts:
 
 ```text
 work/context.md
-work/project-amendment.md      # optional narrow durable change for a project
 work/visual.md                 # layout tasks only
 work/plan.md
 work/split-proposal.md         # only when assessment rejects intrinsic scope
@@ -218,9 +218,8 @@ session disappeared.
 Treat a compact subagent reply as a notification; the artifact and repository
 state are proof.
 
-Apply the shared policy on resume too: an old full project proposal is not a
-completion requirement or a replacement to promote. Revalidate any useful
-durable fact against the current task and source before proposing an amendment.
+Apply the shared policy on resume too: a legacy project proposal or amendment
+is not a completion requirement and is never applied.
 
 At each stable boundary record the current phase locally:
 
@@ -298,10 +297,8 @@ Run sequentially:
    then `work/plan.md` with exact files, functions, ordered steps, bounded
    phases, owned write sets, adaptive review/evidence plans, the selected
    pre-review validation, and status checkboxes.
-   Use the same Phase 1 prompt for standalone, new-project, and follow-up work,
-   with the selected small overview and explicitly relevant references. A
-   useful durable change may warrant `work/project-amendment.md` under the
-   shared policy; its absence does not make the phase incomplete.
+   Use the same Phase 1 prompt for new and follow-up work, with the project's
+   paragraph and explicitly relevant references.
    The visual contract derives every dimension from request relationships,
    supplied images, font metrics, style tokens, sibling geometry, or a cited
    desktop analogue, with ordered calculations, tolerances, relationship
@@ -335,9 +332,13 @@ Run sequentially:
    result may be produced after source edits by the review convergence
    assessment when the retained implementation exposes several independently
    shippable/testable boundaries.
-3. **Implement.** Run one leaf per assessed plan phase. Before each edit,
-   update `work/owned-paths.txt`. A leaf edits only its owned paths and its
-   phase status; it does not commit.
+3. **Implement.** Before the first source edit, run the read-only probes from
+   `## Prerequisites` in `test-design.md`. When one fails, stop before
+   implementation with a recoverable hard stop naming the missing condition
+   and the human action that clears it, so no implementation time is spent on
+   evidence that cannot run. Then run one leaf per assessed plan phase. Before
+   each edit, update `work/owned-paths.txt`. A leaf edits only its owned paths
+   and its phase status; it does not commit.
 4. **Pre-review validation.** Run the assessed fast validation in the
    performer. App source normally builds the configured Debug Telegram target;
    isolated scripts, generators, libraries and harness code may use a focused
@@ -601,7 +602,9 @@ exactly one disposition:
   boundaries; write or update `split-proposal.md` and stop automatic work.
 - `HARD_STOP` — an exact unsafe or unavailable condition needs human action,
   such as a fix that needs funded value, credentials or a server change. Slow
-  convergence, a round count or a hard design is never a hard stop.
+  convergence, a round count or a hard design is never a hard stop. The task
+  publishes a `Block` naming that condition and is set aside for the owner;
+  the run continues with other work.
 
 A ruling settles a question the loop keeps reopening: which of two
 conflicting findings holds, or what the task requires where it is silent. The
@@ -894,10 +897,11 @@ For every instrument, assessment returns exactly one of:
 A `TEST_FLAW` recovery must remove an assumption or move closer to the changed
 surface. Do not repeat the same command, fixture, or overlay wording. The normal
 campaign cap is an assessment checkpoint: carry prior passes, isolate unmet
-checks, and choose at most one focused recovery campaign or document recovery
-exhaustion. A focused campaign that does not converge stops automatic work with
-an exact recoverable hard stop; it never starts a third campaign or converts the
-cap into approval/Block. An `IMPL_BUG` fix creates a new retained attempt, uses the same
+checks, and choose a focused recovery campaign or document recovery
+exhaustion. A focused campaign that does not converge goes to the final
+assessment in `.agents/shared/test-loop.md`, which names an untried direct
+strategy for one more campaign or records recovery exhaustion; it never waits
+for the owner and never converts the cap itself into approval or a Block. An `IMPL_BUG` fix creates a new retained attempt, uses the same
 focused general/invalidated-specialist review and convergence checkpoints as the
 pre-commit loop, and reruns only invalidated checks. It never restarts the
 initial complete-diff review simply because the attempt number changed.
@@ -928,6 +932,64 @@ implementation. Require current task base/run refs, keep the owned diff and any
 green commit in place, and inventory every owned path in `work/owned-paths.txt`.
 The publication helper seals that work in `work/carried-work.json`; the later
 split transaction rechecks the seal before assigning an implementation carrier.
+
+### Project branches
+
+Every task belongs to a project, and every project is performed on the branch
+named by its slug, in tdesktop and in each top-level submodule the project
+changes; several checkouts may work on one project at once. The scheduler, or
+`perform-task` itself, ran `project-switch` before the task started, so the
+checkout is already on that branch. When that switch rebased the branch onto
+a new base (`base_refresh`, or `Rebased onto:` from the scheduler), the
+first Debug build after Phase 1 may expose breakage the rebase brought in:
+fix it in its own commit, with this task's trailer and a plain
+`Fix build after rebasing onto <base>.`-style subject, before the task's own
+changes. A nested submodule's commit must already
+be on one of its remote branches; `project-push` refuses otherwise. Every
+approval pushes: before publishing a task's `Approve` (a legacy task without a
+project skips these steps):
+
+1. Run `workspace.py project-sync --task <TASK_ID>`, adding
+   `--onto <remote>/<branch>` when the scheduler passed `Base:` for this task.
+   It fetches `private`, replays only this task's own commits onto
+   `private/<slug>`, rebases the task's submodule commits onto each
+   submodule's `<slug>` branch and rewrites their pins, and refreshes
+   `BASE_REF`, `GREEN_REF` and `RUN_REF`. With `--onto` it then rebases the
+   whole project branch onto that base, its submodule commits onto the
+   commits the base pins. A replay conflict leaves the checkout as it was;
+   resolve it by reading both sides' intent, as the `/rebase` skill does,
+   then run `project-sync` again.
+2. When it reports `build_required`, build Debug. Nothing is rebuilt
+   otherwise. A failure in the project's own code is fixed by amending the
+   commit that introduced it: this task's commits after an ordinary sync, any
+   project commit after a base rebase. Use `git commit --fixup` and a
+   non-interactive autosquash rebase, then `source-begin` to refresh the
+   task refs. A failure in the base's own code, which does not build by
+   itself, is fixed in one new commit with a plain `Fix build.`-style subject
+   that touches only files no project commit changes; run `source-begin` so
+   the task refs include it, then
+   `project-sync --onto <base> --base-fix <commit>`, which moves it first on
+   the branch, directly on the base, and reports it as `base_fix`. When a sync
+   reports `rewrite_discarded`, another checkout published first and the base
+   rebase was undone: redo it with `--onto`, and redo its build fixes.
+3. Run `workspace.py project-push --task <TASK_ID>`, with `--rewritten` after
+   a base rebase, and `--base-fix <base_fix> --base <remote>/<branch>` when a
+   base fix exists: that fix is fast-forwarded onto the base branch first.
+   Submodule branches are pushed before tdesktop. After a base rebase the
+   new submodule commits go first to this checkout's own staging branch
+   `_staging/<slug>/<checkout-tag>`, so every pin is fetchable, then tdesktop
+   moves under its lease, then the submodule project branches; if one of
+   those fails, rerun `project-push` until it completes. A rejected push
+   means another checkout published first: go back to step 1.
+4. Only then run `finish`.
+
+A task that is set aside with `Block` publishes nothing to the
+project branch. After its `Block` is published, keep each changed
+submodule's pinned commit with
+`git -C <submodule> update-ref refs/ai-tasks/<TASK_ID>/green <pin>`, then
+reset the branch to `BASE_REF` (`GREEN_REF` keeps the tdesktop commits) and
+update the submodules, so the next task starts clean. A retry first replays `BASE_REF..GREEN_REF` onto the
+current tip with `git cherry-pick`, then runs `source-begin`.
 
 Write `work/result.md` with exactly one value for every field:
 
@@ -967,29 +1029,7 @@ name its paths under `Touched:` when owned source work exists; otherwise use
 `Checkout: source-state-retained` and does not require a test report, because
 each replacement receives its own complete review and evidence campaign.
 
-For approved project work with a still-useful amendment, apply the shared
-policy immediately before final AI publication:
-
-1. Require a clean canonical AI main worktree. When `origin` exists, fetch it
-   there and fast-forward its `master` to `origin/master`. Read the latest
-   canonical target section and reconcile the proposed fact with it.
-2. Author only the task's narrow edit in its own
-   `AI_SLOT/projects/<project>/project.md`, validated against those fresh
-   canonical facts. Keep unrelated slot text unchanged; the final rebase
-   brings in independent canonical edits. Never copy the fresh whole file
-   into a stale slot and replay those edits as this task's change. Skip a
-   redundant or unsupported amendment. If section changes prevent a safe
-   task-only edit, retain the proposal task-locally and finish without the
-   optional amendment unless the conflict invalidates task correctness. Do not
-   sync, rebase, stash, or copy other files into the dirty task slot.
-3. Use ordinary `finish` below. It commits the task artifacts and optional
-   own-project file before fetching/rebasing the now-clean slot. Its existing
-   rebase handles later independent edits; preserve the final commit and stop
-   on a semantic conflict. Do not broaden its path scope to indexes, other
-   projects, or reference files.
-
-Without an amendment, publish the task normally. Blocked and split-required
-results must leave shared project files unchanged; proposals remain task-local.
+Every result leaves shared project files unchanged.
 
 Publish final AI state only after the Telegram commit and result are final:
 
@@ -1128,12 +1168,19 @@ delays finishing the work actually in hand.
 - A test campaign cap is not a clean blocked attempt. Preserve the overlay and
   evidence and run the cap assessment. The normal campaign may authorize one
   focused campaign; the focused campaign boundary either proves recovery
-  exhaustion or returns a recoverable hard stop instead of looping. The
+  exhaustion or goes to a fresh convergence assessment instead of looping;
+  it never waits for the owner. The
   publication helper rejects a test block whose report still says `TEST_FLAW`,
   cites the run cap, or lacks the required recovery-exhaustion record.
 - A Windows file-lock build error follows the shared bounded exact-checkout
-  recovery. Only exhaustion or an unsafe/non-owned holder stops the run and
-  asks the human; the task remains `in-progress`.
+  recovery, including its delayed retries. Only its exhausted or unsafe outcome
+  stops the run; the task remains `in-progress`.
+- Never ask the owner during a `continue` run. Decide, record the decision in
+  `work/decisions.md`, and continue. The only global stops are a server scheme
+  mismatch and a missing golden test account; unexplained dirty source that
+  appears during the run goes to `workspace.py wip-save` instead. Uncommitted
+  source of unknown origin found before the task starts is the owner's
+  question, asked by whoever starts the task.
 - A locked macOS session and the resulting unavailable Computer Use driver
   never stop or block the task; continue with the complete in-binary overlay
   flow.
