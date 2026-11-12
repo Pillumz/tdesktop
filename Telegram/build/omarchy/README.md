@@ -227,11 +227,40 @@ Debug symbols may be stripped from the packaged copy; keep the original build
 for diagnosis. Automatic updates must stay disabled so an official binary
 cannot replace the patched executable.
 
-For upstream updates, rebase the small `lib_ui` patch onto Telegram's newly
-pinned library version, publish it, then update the main fork's submodule pin.
-Rebuild and repeat actual UI checks; a palette-only check cannot validate alpha.
+For upstream updates, integrate Telegram's exact pinned `lib_ui` version while
+preserving the fork's translucency patch and published history. Publish the
+library first, then update the main fork's submodule pin. Rebuild and repeat
+actual UI checks; a palette-only check cannot validate alpha.
 
 ## Verification and limits
+
+### 7.4.2 refresh — 2026-11-12
+
+The fork incorporates the released Telegram Desktop 7.4.2 and its matching
+`lib_ui` revision, preserving both forks' published history. Folder switching
+uses upstream's new `Window::SlideAnimation` API with the native transparent
+canvas clear retained.
+
+A fresh Debug build (`-g1 -Og`, `TDESKTOP_API_TEST=ON`, automatic updates disabled)
+passed in an isolated Omarchy VM using this pinned dependency image:
+
+```text
+ghcr.io/telegramdesktop/tdesktop/centos_env@sha256:1d1b0f2efbcc106fc9f56ab90602d45bd2820bb0035d26755eca46f23d303e51
+```
+
+All 23 installed Omarchy themes generated with the updated palette schema.
+The prepared package's installation, desktop-entry validation, repeat activation,
+`tg:`, `ton:` and `tonsite:` handoffs, graceful quit and disabled fresh-profile
+autostart passed. The tonsite window belongs to the original main process and
+uses a separate `-webviewhelper` process.
+
+The welcome screen was inspected, followed by the phone-login screen at half
+and quarter sizes and 1.6 display scale. A live dark-to-light switch updated the running app.
+Black/white desktop captures measured a 38/255 background change on the login
+screen, corresponding to 85% surface opacity. No account login or disposable
+test overlay was used. Authenticated chat rendering, actual folder switching,
+messaging, calls and physical-GPU performance were not re-exercised in this
+refresh; the earlier fixture results below are historical evidence.
 
 Daily-launcher changes were checked with `herd-test --no-pg` and a compiled fake
 executable: argument rejection, URI argv preservation, activation/quit handoffs,
