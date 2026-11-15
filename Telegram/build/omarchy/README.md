@@ -7,14 +7,17 @@ is needed. Desktop integration is user-level and opt-in.
 
 ## Install a prepared package
 
-Keep the package at a permanent path. `~/.local/bin` must be in the **graphical
+Keep the daily-use package at `~/.local/lib/telegram-native` on home and work.
+Source code stays in `~/Projects/tdesktop`; account data stays in the separate
+profile described below. Do not install daily builds in a top-level Applications
+directory. `~/.local/bin` must be in the **graphical
 session's** PATH, with no earlier `Telegram` executable shadowing the shim.
 If `/usr/bin` comes first, remove the official package before installation;
 changing PATH order is not required once its executable is gone. Log out/in if
 you do change the session PATH. Then, as your own user, explicitly run:
 
 ```bash
-python3 /permanent/path/to/telegram-native/install.py
+python3 "$HOME/.local/lib/telegram-native/install.py"
 ```
 
 This creates `~/.local/bin/Telegram` pointing to this package's launcher and
@@ -215,11 +218,19 @@ After restoring the disposable test overlay to its no-op version and rebuilding:
 ```bash
 Telegram/build/omarchy/package.sh \
   --binary out/Debug/Telegram \
-  --palette Telegram/lib_ui/ui/colors.palette \
-  --output /new/telegram-native
+  --palette Telegram/lib_ui/ui/colors.palette
 ```
 
-The output directory must not exist. The package contains the executable,
+The default output is `~/.local/lib/telegram-native`. The output directory must
+not exist: packaging refuses to overwrite an installed or running client. Use
+`--output /new/staging/directory` for a disposable package or an upgrade. For a
+daily upgrade, quit the installed fork, replace the package at its stable
+`~/.local/lib/telegram-native` location with the verified staged package, and
+rerun its `install.py` before launching through `Telegram`. Record the new build's
+exact provenance in `SOURCE.txt`; never copy account data into the package.
+A rebuild alone does not install it.
+
+The package contains the executable,
 launcher, installer, desktop icon, generator and palette schema, never accounts
 or test fixtures. Packaging installs nothing; installation is a separate explicit
 step. Neither helper installs dependencies or detects the binary's build flags.

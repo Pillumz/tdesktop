@@ -3,14 +3,15 @@ set -euo pipefail
 
 usage() {
     printf '%s\n' \
-        'Usage: package.sh --binary /path/to/Debug/Telegram --palette /path/to/colors.palette --output /new/directory' \
+        'Usage: package.sh --binary /path/to/Debug/Telegram --palette /path/to/colors.palette [--output /new/directory]' \
+        'Default output: ~/.local/lib/telegram-native; the output directory must not exist.' \
         'Supply the native fork Debug binary built with DISABLE_AUTOUPDATE=ON.' \
         'This helper does not detect build options, build dependencies, or install anything.'
 }
 
 binary=
 palette=
-output=
+output="$HOME/.local/lib/telegram-native"
 while (($#)); do
     case "$1" in
         --binary|--palette|--output)
@@ -29,7 +30,7 @@ while (($#)); do
         *) usage >&2; exit 2 ;;
     esac
 done
-if [[ -z $binary || -z $palette || -z $output ]]; then
+if [[ -z $binary || -z $palette ]]; then
     usage >&2
     exit 2
 fi
@@ -38,6 +39,7 @@ if [[ ! -f $binary || ! -x $binary || ! -f $palette ]]; then
     exit 1
 fi
 source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+mkdir -p -- "$(dirname -- "$output")"
 mkdir -m 755 -- "$output"
 trap 'rm -rf -- "$output"' EXIT
 install -m 755 -- "$binary" "$output/Telegram"
@@ -52,7 +54,8 @@ install -m 644 -- "$source_dir/../../../LEGAL" "$output/LEGAL"
 trap - EXIT
 printf '%s\n' \
     "Package created: $output" \
-    'Place this directory permanently, then run python3 /path/to/package/install.py (Python 3.11+).' \
+    'Daily-use location on home and work: ~/.local/lib/telegram-native.' \
+    'At that permanent location, run python3 ~/.local/lib/telegram-native/install.py (Python 3.11+).' \
     'The installer registers a user-level Telegram shim, desktop entry and tg/ton/tonsite defaults.' \
     'Verify the fork was built with DISABLE_AUTOUPDATE=ON before launching Telegram.' \
     'No libraries, accounts or compositor rules are bundled; packaging installs nothing.'
