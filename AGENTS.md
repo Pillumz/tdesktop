@@ -21,9 +21,10 @@ This guide defines repository-wide instructions for coding agents working with t
 - In inherited upstream maintenance skills, `origin/dev` is not this product's
   development base. Use the explicitly requested revision; do not silently
   substitute official Telegram for the Omarchy fork.
-- Daily-use binaries live under `~/Applications/telegram-native` on home and
-  work. Use their launcher, not an official system Telegram executable. The
-  fork's account profile is separate; never copy, migrate or delete either
+- Daily-use binaries live under `~/.local/lib/telegram-native` on home and
+  work. Package and upgrade at this stable location; do not recreate a top-level
+  Applications directory. Use their launcher, not an official system Telegram
+  executable. The fork's account profile is separate; never copy, migrate or delete either
   client's account data without explicit approval. Test GUI changes in the
   app sandbox, not against a running personal account.
 
